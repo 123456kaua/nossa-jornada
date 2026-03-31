@@ -26,16 +26,15 @@ localStorage.setItem(LOCAL_KEY, JSON.stringify([...completed]))
 } catch {}
 }
 
-// 🔥 ID COM ESPAÇO (SEGURO COM encodeURIComponent)
+// 🔥 ID FIXO (ESSENCIAL PRA SINCRONIZAR)
 export function getCoupleId(): string {
-return encodeURIComponent("marido e mulher")
+return "marido-e-gabriela"
 }
 
 export function useProgress() {
 const [completed, setCompleted] = useState<Set<number>>(new Set())
 const [isLoaded, setIsLoaded] = useState(false)
 const [coupleId, setCoupleId] = useState('')
-const [isSyncing, setIsSyncing] = useState(false)
 
 useEffect(() => {
 const local = loadLocal()
@@ -54,8 +53,7 @@ loadProgressFromCloud(id)
     saveLocal(merged)
     setIsLoaded(true)
   })
-  .catch((err) => {
-    console.error("Erro ao carregar do Supabase:", err)
+  .catch(() => {
     setIsLoaded(true)
   })
 ```
@@ -93,13 +91,9 @@ const willComplete = !prev.has(dayNum)
   saveLocal(next)
 
   if (willComplete) {
-    markDayComplete(coupleId, dayNum, userName || 'partner')
-      .then(res => console.log("SALVOU?", res))
-      .catch(err => console.error("ERRO AO SALVAR:", err))
+    markDayComplete(coupleId, dayNum, userName || 'marido')
   } else {
     unmarkDayComplete(coupleId, dayNum)
-      .then(res => console.log("REMOVEU?", res))
-      .catch(err => console.error("ERRO AO REMOVER:", err))
   }
 
   return next
@@ -121,7 +115,6 @@ return {
 completed,
 isLoaded,
 coupleId,
-isSyncing,
 toggleDay,
 isComplete,
 completedCount,
