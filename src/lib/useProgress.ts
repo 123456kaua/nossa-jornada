@@ -30,7 +30,8 @@ function saveLocal(completed: Set<number>) {
 export function getCoupleId(): string {
   return "marido e mulher"
 }
-}
+
+console.log("COUPLE ID:", coupleId)
 
 export function useProgress() {
   const [completed, setCompleted] = useState<Set<number>>(new Set())
