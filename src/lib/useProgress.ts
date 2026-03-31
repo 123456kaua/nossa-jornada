@@ -28,13 +28,8 @@ function saveLocal(completed: Set<number>) {
 }
 
 export function getCoupleId(): string {
-  if (typeof window === 'undefined') return ''
-  let id = localStorage.getItem(COUPLE_ID_KEY)
-  if (!id) {
-    id = Math.random().toString(36).slice(2, 10)
-    localStorage.setItem(COUPLE_ID_KEY, id)
-  }
-  return id
+  return "marido e mulher"
+}
 }
 
 export function useProgress() {
