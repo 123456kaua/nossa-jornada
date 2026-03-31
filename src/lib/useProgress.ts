@@ -2,110 +2,130 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import {
-  loadProgressFromCloud,
-  markDayComplete,
-  unmarkDayComplete,
-  subscribeToProgress,
+loadProgressFromCloud,
+markDayComplete,
+unmarkDayComplete,
+subscribeToProgress,
 } from './supabase'
 
 const LOCAL_KEY = 'njcd_completed_v2'
-const COUPLE_ID_KEY = 'njcd_couple_id'
 
 function loadLocal(): Set<number> {
-  if (typeof window === 'undefined') return new Set()
-  try {
-    const raw = localStorage.getItem(LOCAL_KEY)
-    if (raw) return new Set(JSON.parse(raw) as number[])
-  } catch {}
-  return new Set()
+if (typeof window === 'undefined') return new Set()
+try {
+const raw = localStorage.getItem(LOCAL_KEY)
+if (raw) return new Set(JSON.parse(raw) as number[])
+} catch {}
+return new Set()
 }
 
 function saveLocal(completed: Set<number>) {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(LOCAL_KEY, JSON.stringify([...completed]))
-  } catch {}
+if (typeof window === 'undefined') return
+try {
+localStorage.setItem(LOCAL_KEY, JSON.stringify([...completed]))
+} catch {}
 }
 
+// 🔥 ID COM ESPAÇO (SEGURO COM encodeURIComponent)
 export function getCoupleId(): string {
-  return "marido e mulher"
+return encodeURIComponent("marido e mulher")
 }
-
-console.log("COUPLE ID:", coupleId)
 
 export function useProgress() {
-  const [completed, setCompleted] = useState<Set<number>>(new Set())
-  const [isLoaded, setIsLoaded] = useState(false)
-  const [coupleId, setCoupleId] = useState('')
-  const [isSyncing, setIsSyncing] = useState(false)
+const [completed, setCompleted] = useState<Set<number>>(new Set())
+const [isLoaded, setIsLoaded] = useState(false)
+const [coupleId, setCoupleId] = useState('')
+const [isSyncing, setIsSyncing] = useState(false)
 
-  useEffect(() => {
-    const local = loadLocal()
-    setCompleted(local)
-    const id = getCoupleId()
-    setCoupleId(id)
+useEffect(() => {
+const local = loadLocal()
+setCompleted(local)
 
-    // Try to merge with cloud
-    loadProgressFromCloud(id).then((cloud) => {
-      if (cloud.size > 0) {
-        const merged = new Set([...local, ...cloud])
-        setCompleted(merged)
-        saveLocal(merged)
-      }
-      setIsLoaded(true)
-    }).catch(() => {
-      setIsLoaded(true)
-    })
-  }, [])
+```
+const id = getCoupleId()
+setCoupleId(id)
 
-  // Real-time subscription
-  useEffect(() => {
-    if (!coupleId) return
-    const unsub = subscribeToProgress(coupleId, (dayNum, isComplete) => {
-      setCompleted(prev => {
-        const next = new Set(prev)
-        if (isComplete) next.add(dayNum)
-        else next.delete(dayNum)
-        saveLocal(next)
-        return next
-      })
-    })
-    return unsub
-  }, [coupleId])
+console.log("COUPLE ID:", id)
 
-  const toggleDay = useCallback(async (dayNum: number, userName?: string) => {
-    setCompleted(prev => {
-      const next = new Set(prev)
-      const willComplete = !prev.has(dayNum)
-      if (willComplete) next.add(dayNum)
-      else next.delete(dayNum)
-      saveLocal(next)
-      
-      // Sync to cloud in background
-      if (willComplete) {
-        markDayComplete(coupleId, dayNum, userName || 'partner')
-      } else {
-        unmarkDayComplete(coupleId, dayNum)
-      }
-      
-      return next
-    })
-  }, [coupleId])
+loadProgressFromCloud(id)
+  .then((cloud) => {
+    const merged = new Set([...local, ...cloud])
+    setCompleted(merged)
+    saveLocal(merged)
+    setIsLoaded(true)
+  })
+  .catch((err) => {
+    console.error("Erro ao carregar do Supabase:", err)
+    setIsLoaded(true)
+  })
+```
 
-  const isComplete = useCallback((dayNum: number) => completed.has(dayNum), [completed])
-  const completedCount = completed.size
-  const totalDays = 276
-  const percentage = Math.round((completedCount / totalDays) * 100)
+}, [])
 
-  return {
-    completed,
-    isLoaded,
-    coupleId,
-    isSyncing,
-    toggleDay,
-    isComplete,
-    completedCount,
-    totalDays,
-    percentage,
+useEffect(() => {
+if (!coupleId) return
+
+```
+const unsub = subscribeToProgress(coupleId, (dayNum, isComplete) => {
+  setCompleted(prev => {
+    const next = new Set(prev)
+    if (isComplete) next.add(dayNum)
+    else next.delete(dayNum)
+    saveLocal(next)
+    return next
+  })
+})
+
+return unsub
+```
+
+}, [coupleId])
+
+const toggleDay = useCallback(async (dayNum: number, userName?: string) => {
+setCompleted(prev => {
+const next = new Set(prev)
+const willComplete = !prev.has(dayNum)
+
+```
+  if (willComplete) next.add(dayNum)
+  else next.delete(dayNum)
+
+  saveLocal(next)
+
+  if (willComplete) {
+    markDayComplete(coupleId, dayNum, userName || 'partner')
+      .then(res => console.log("SALVOU?", res))
+      .catch(err => console.error("ERRO AO SALVAR:", err))
+  } else {
+    unmarkDayComplete(coupleId, dayNum)
+      .then(res => console.log("REMOVEU?", res))
+      .catch(err => console.error("ERRO AO REMOVER:", err))
   }
+
+  return next
+})
+```
+
+}, [coupleId])
+
+const isComplete = useCallback(
+(dayNum: number) => completed.has(dayNum),
+[completed]
+)
+
+const completedCount = completed.size
+const totalDays = 276
+const percentage = Math.round((completedCount / totalDays) * 100)
+
+return {
+completed,
+isLoaded,
+coupleId,
+isSyncing,
+toggleDay,
+isComplete,
+completedCount,
+totalDays,
+percentage,
+}
 }
